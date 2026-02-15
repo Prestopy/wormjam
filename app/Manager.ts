@@ -83,6 +83,8 @@ export class Manager {
 				this.agents.push(new Agent(new Vec2(Math.random() * this.pheromoneMap.width, Math.random() * this.pheromoneMap.height)));
 			}
 		}
+
+		Manager.NUM_AGENTS = numAgents;
 	}
 
 	public build() {

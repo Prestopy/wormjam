@@ -38,7 +38,7 @@ export default function Home() {
 
 
 	const [settings, setSettings] = useState({
-		numAgents: 160_000,
+		numAgents: 40_000,
 		decay: 0.98,
 
 		speed: 2,
@@ -221,7 +221,7 @@ export default function Home() {
 
 						<div>
 							<label className="text-xs text-zinc-400 block">Num. Agents ({settings.numAgents})</label>
-							<input type="range" min={50_000} max={200_000} step={1} className="w-full"
+							<input type="range" min={5_000} max={50_000} step={1} className="w-full"
 							       value={settings.numAgents}
 							       onChange={(e) => updateSettings('numAgents', parseInt(e.target.value), (v) => Manager.getInstance().populate(v))}
 							/>
