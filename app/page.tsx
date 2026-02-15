@@ -6,10 +6,14 @@ import {Agent} from "@/app/Agent";
 export default function Home() {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+	const settingsMenuRef = useRef<HTMLDivElement | null>(null);
+	const functionBarRef = useRef<HTMLDivElement | null>(null);
+	const disableMouseEventsRef = useRef(false); // used to disable mouse events when hovering over the settings menu or function bar
+
 	const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
 	const [brushSettings, setBrushSettings] = useState<
 		{
-			type: "none" | "add" | "remove",
+			type: "none" | "add" | "add_agents" | "remove",
 			brushSize: number,
 		}
 	>({
@@ -84,20 +88,31 @@ export default function Home() {
 		}
 		window.addEventListener("resize", handleResize);
 
-		// cursor position ref
 		function handleCursorMove(e: MouseEvent) {
 			cursorPosRef.current = {
 				x: e.clientX,
 				y: e.clientY
 			}
+
+			const settingsRect = settingsMenuRef.current?.getBoundingClientRect();
+			const functionBarRect = functionBarRef.current?.getBoundingClientRect();
+
+			if (
+				(settingsRect && e.clientX >= settingsRect.left && e.clientX <= settingsRect.right && e.clientY >= settingsRect.top && e.clientY <= settingsRect.bottom) ||
+				(functionBarRect && e.clientX >= functionBarRect.left && e.clientX <= functionBarRect.right && e.clientY >= functionBarRect.top && e.clientY <= functionBarRect.bottom)
+			) {
+				disableMouseEventsRef.current = true;
+			} else {
+				disableMouseEventsRef.current = false;
+			}
 		}
 		window.addEventListener("mousemove", handleCursorMove);
 
-		function handleMouseDown(e: MouseEvent) {
+		function handleMouseDown() {
 			mouseDownRef.current = true;
 		}
 		window.addEventListener("mousedown", handleMouseDown);
-		function handleMouseUp(e: MouseEvent) {
+		function handleMouseUp() {
 			mouseDownRef.current = false;
 		}
 		window.addEventListener("mouseup", handleMouseUp);
@@ -108,12 +123,26 @@ export default function Home() {
 
 			const ctx = canvasRef.current.getContext("2d");
 			if (ctx) {
-				if (mouseDownRef.current) manager.editPheromones(
-					cursorPosRef.current.x,
-					cursorPosRef.current.y,
-					brushSettingsRef.current.brushSize,
-					brushSettingsRef.current.type === "add" ? 1 : brushSettingsRef.current.type === "remove" ? -1 : 0
-				);
+				if (mouseDownRef.current && !disableMouseEventsRef.current) {
+					switch (brushSettingsRef.current.type) {
+						case "add":
+						case "remove":
+							manager.editPheromones(
+								cursorPosRef.current.x,
+								cursorPosRef.current.y,
+								brushSettingsRef.current.brushSize,
+								brushSettingsRef.current.type === "add" ? 1 : brushSettingsRef.current.type === "remove" ? -1 : 0
+							);
+							break;
+						case "add_agents":
+							manager.populateRegion(
+								cursorPosRef.current.x,
+								cursorPosRef.current.y,
+								brushSettingsRef.current.brushSize,
+							)
+							break;
+					}
+				}
 				manager.update();
 
 				if (displaySettingsRef.current.displayPheromones) manager.drawPheromones(ctx);
@@ -137,18 +166,20 @@ export default function Home() {
 				ref={canvasRef}
 			/>
 
-			<div className="absolute top-0 right-0 text-sm text-zinc-500 bg-black px-2 py-1 flex flex-row gap-1 select-none">
+			<div className="absolute top-0 right-0 text-sm text-zinc-500 bg-black px-2 py-1 flex flex-row gap-1 select-none" ref={functionBarRef}>
 				<button className="hover:text-white cursor-pointer" style={brushSettings.type === "none" ? { color: "white"} : {}} onClick={() => setBrushSettings(p => ({...p, type: "none"}))}>No brush</button>
 				<p>|</p>
-				<button className="hover:text-white cursor-pointer" style={brushSettings.type === "add" ? { color: "white"} : {}} onClick={() => setBrushSettings(p => ({...p, type: "add"}))}>Additive brush</button>
+				<button className="hover:text-white cursor-pointer" style={brushSettings.type === "add_agents" ? { color: "white"} : {}} onClick={() => setBrushSettings(p => ({...p, type: "add_agents"}))}>Agent brush</button>
 				<p>|</p>
-				<button className="hover:text-white cursor-pointer" style={brushSettings.type === "remove" ? { color: "white"} : {}} onClick={() => setBrushSettings(p => ({...p, type: "remove"}))}>Subtractive brush</button>
+				<button className="hover:text-white cursor-pointer" style={brushSettings.type === "add" ? { color: "white"} : {}} onClick={() => setBrushSettings(p => ({...p, type: "add"}))}>Pheromone brush</button>
+				<p>|</p>
+				<button className="hover:text-white cursor-pointer" style={brushSettings.type === "remove" ? { color: "white"} : {}} onClick={() => setBrushSettings(p => ({...p, type: "remove"}))}>Pheromone eraser</button>
 				<p>|</p>
 				<button className="hover:text-white cursor-pointer" style={settingsMenuOpen ? { color: "white"} : {}} onClick={() => setSettingsMenuOpen(p => !p)}>{settingsMenuOpen ? "Close" : "Open"} settings</button>
 			</div>
 			{
 				settingsMenuOpen && (
-					<div className="absolute top-7 right-5 bg-black/80 p-4 rounded-lg border border-zinc-700 backdrop-blur-md flex flex-col gap-3 w-64">
+					<div className="absolute top-7 right-5 bg-black/80 p-4 rounded-lg border border-zinc-700 backdrop-blur-md flex flex-col gap-3 w-64 select-none" ref={settingsMenuRef}>
 						<div className="flex flex-row justify-between border-b border-zinc-700 pb-2">
 							<p className="text-xl font-bold">Settings</p>
 							<button className="text-xl font-bold cursor-pointer" onClick={() => setSettingsMenuOpen(false)}>❌</button>

@@ -98,7 +98,33 @@ export class Manager {
 		this.populate(Manager.NUM_AGENTS);
 	}
 
-	public editPheromones(x: number, y: number, radius: number, amount: number) {
+	public populateRegion(x: number, y: number, radius: number) {
+		if (this.agents === null) return;
+
+		const w = this.getW();
+		const h = this.getH();
+
+		const r_center = Math.floor(y);
+		const c_center = Math.floor(x);
+
+		const numToAdd = 1_000;
+		for (let i=0; i<numToAdd; i++) {
+			const dr = Math.floor(Math.random() * (radius*2+1)) - radius;
+			const dc = Math.floor(Math.random() * (radius*2+1)) - radius;
+
+			const r = getR(r_center + dr, h);
+			const c = getC(c_center + dc, w);
+
+			const distSq = dr*dr + dc*dc;
+			if (distSq <= radius*radius) {
+				this.agents.push(new Agent(new Vec2(c + 0.5, r + 0.5)));
+			}
+		}
+
+		// remove old ones
+		this.agents = this.agents.slice(this.agents.length-Manager.NUM_AGENTS);
+	}
+	public editPheromones(x: number, y: number, radius: number, delta: number) {
 		if (this.pheromoneMap.map === null) return;
 
 		const w = this.getW();
@@ -114,7 +140,7 @@ export class Manager {
 
 				const distSq = dr*dr + dc*dc;
 				if (distSq <= radius*radius) {
-					this.pheromoneMap.map[this.flatIdx(r, c)] = clamp(this.pheromoneMap.map[this.flatIdx(r, c)] + amount, 0, 1);
+					this.pheromoneMap.map[this.flatIdx(r, c)] = clamp(this.pheromoneMap.map[this.flatIdx(r, c)] + delta, 0, 1);
 				}
 			}
 		}
